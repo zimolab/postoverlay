@@ -98,7 +98,7 @@ def do_cleanup(mount_point):
         c_exception_info(e)
 
 
-def do_remove(mount_point, remove_list):
+def apply_remove(mount_point, remove_list):
     if not remove_list:
         return
     for file_path in remove_list:
@@ -125,21 +125,6 @@ def do_remove(mount_point, remove_list):
             )
         except Exception as e:
             c_error(f"failed to remove {file_path}: {e}")
-
-
-def do_pre_overlay_scripting(mount_point, script_path, qemu_bin):
-    mount_point = Path(mount_point)
-    script_path = Path(script_path)
-    qemu_bin = (qemu_bin or "").strip()
-    execute_script(mount_point, script_path, qemu_bin=qemu_bin)
-
-
-def do_post_overlay_scripting(mount_point, script_path, qemu_bin):
-    pass
-
-
-def do_overlay(mount_point, overlay_dir):
-    apply_overlay(mount_point, overlay_dir)
 
 
 def main():
@@ -244,7 +229,7 @@ def main():
         if args.remove:
             c_info("start remove operations...")
             c_info(f"{len(args.remove)} file(s) about to be removed...")
-            do_remove(mount_point, args.remove)
+            apply_remove(mount_point, args.remove)
 
         args.qemu_bin = (args.qemu_bin or "").strip()
         if args.qemu_bin:
@@ -256,7 +241,11 @@ def main():
         # 执行pre-overlay脚本
         if args.pre_script:
             c_info("start to execute pre-overlay script...")
-            do_pre_overlay_scripting(mount_point, args.pre_script, args.qemu_bin)
+            execute_script(
+                mount_point=mount_point,
+                script_path=args.pre_script,
+                qemu_bin=args.qemu_bin,
+            )
 
         # 执行overlay操作
         overlay_dir = args.overlay or ""
@@ -269,12 +258,16 @@ def main():
                 c_error(f"overlay directory not found: {args.overlay}")
                 raise FileNotFoundError(f"directory not found: {args.overlay}")
             c_info("start to apply overlay operation...")
-            do_overlay(mount_point, overlay_dir)
+            apply_overlay(mount_point, overlay_dir)
 
         # 执行post-overlay脚本
         if args.post_script:
             c_info("start to execute post-overlay script...")
-            do_post_overlay_scripting(mount_point, args.post_script, args.qemu_bin)
+            execute_script(
+                mount_point=mount_point,
+                script_path=args.post_script,
+                qemu_bin=args.qemu_bin,
+            )
 
         return 0
 
