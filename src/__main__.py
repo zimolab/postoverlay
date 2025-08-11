@@ -248,17 +248,9 @@ def main():
             )
 
         # 执行overlay操作
-        overlay_dir = args.overlay or ""
-        if overlay_dir and overlay_dir.strip() == "":
-            c_warning("overlay directory not specified, skip overlay operation")
-        overlay_dir = overlay_dir.strip()
-        if overlay_dir:
-            overlay_dir = Path(overlay_dir)
-            if not overlay_dir.is_dir():
-                c_error(f"overlay directory not found: {args.overlay}")
-                raise FileNotFoundError(f"directory not found: {args.overlay}")
+        if args.overlay:
             c_info("start to apply overlay operation...")
-            apply_overlay(mount_point, overlay_dir)
+            apply_overlay(mount_point, args.overlay)
 
         # 执行post-overlay脚本
         if args.post_script:
