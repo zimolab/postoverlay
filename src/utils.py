@@ -92,15 +92,18 @@ def bash_exec(
     cwd=None,
     encoding="utf-8",
     timeout=None,
+    no_bash_exec=False,
 ):
     if not script:
         return -1, None, None, ValueError("script not provided")
 
-    if mode not in ["string", "file"]:
+    if mode not in ("string", "file"):
         raise ValueError("mode must be either 'string' or 'file'")
 
     cmd = ["bash"]
     if mode == "file":
+        if no_bash_exec:
+            cmd = []
         script = Path(script)
         if not script.is_file():
             raise FileNotFoundError(f"{script} not found")
@@ -111,13 +114,10 @@ def bash_exec(
         cmd.append(script)
 
     if cwd:
-        cwd = Path(cwd).absolute().as_posix()
-
-    stdout_buffer = StringIO()
-    stderr_buffer = StringIO()
+        cwd = Path(cwd).as_posix()
 
     try:
-        with subprocess.Popen(
+        result = subprocess.run(
             cmd,
             cwd=cwd,
             stdout=subprocess.PIPE,
@@ -125,31 +125,54 @@ def bash_exec(
             shell=False,
             encoding=encoding,
             errors="replace",
-            bufsize=1,
-        ) as p:
-            for line in p.stdout:
-                stdout_buffer.write(line)
-            for line in p.stderr:
-                stderr_buffer.write(line)
-            try:
-                p.wait(timeout=timeout)
-            except subprocess.TimeoutExpired as e:
-                p.kill()
-                raise e
-            ret_code = p.returncode
-            return (
-                ret_code,
-                stdout_buffer.getvalue().strip(),
-                stderr_buffer.getvalue().strip(),
-                None,
-            )
-    except BaseException as e:
-        return (
-            -1,
-            stdout_buffer.getvalue().strip(),
-            stderr_buffer.getvalue().strip(),
-            e,
+            timeout=timeout,
         )
+        return (
+            result.returncode,
+            result.stdout.strip(),
+            result.stderr.strip(),
+            None,
+        )
+    except subprocess.TimeoutExpired as e:
+        return -1, None, None, e
+
+    # stdout_buffer = StringIO()
+    # stderr_buffer = StringIO()
+    #
+    # try:
+    #     with subprocess.Popen(
+    #         cmd,
+    #         cwd=cwd,
+    #         stdout=subprocess.PIPE,
+    #         stderr=subprocess.PIPE,
+    #         shell=False,
+    #         encoding=encoding,
+    #         errors="replace",
+    #         bufsize=1,
+    #     ) as p:
+    #         for line in p.stdout:
+    #             stdout_buffer.write(line)
+    #         for line in p.stderr:
+    #             stderr_buffer.write(line)
+    #         try:
+    #             p.wait(timeout=timeout)
+    #         except subprocess.TimeoutExpired as e:
+    #             p.kill()
+    #             raise e
+    #         ret_code = p.returncode
+    #         return (
+    #             ret_code,
+    #             stdout_buffer.getvalue().strip(),
+    #             stderr_buffer.getvalue().strip(),
+    #             None,
+    #         )
+    # except BaseException as e:
+    #     return (
+    #         -1,
+    #         stdout_buffer.getvalue().strip(),
+    #         stderr_buffer.getvalue().strip(),
+    #         e,
+    #     )
 
 
 def shlex_join(args):
