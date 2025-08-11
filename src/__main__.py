@@ -150,6 +150,57 @@ def main():
         c_info("process terminated")
         return 1
 
+    overlay_dir = args.overlay or ""
+    if overlay_dir and overlay_dir.strip() == "":
+        c_warning(
+            "overlay directory not specified, skip overlay operation will be skipped"
+        )
+    args.overlay = overlay_dir.strip()
+    if args.overlay:
+        args.overlay = Path(args.overlay)
+        if not args.overlay.is_dir():
+            c_error(f"overlay directory not found: {args.overlay}")
+            c_info("process terminated")
+            return 1
+
+    remove_list = []
+    if args.remove_list:
+        remove_list_file = Path(args.remove_list)
+        if not remove_list_file.is_file():
+            c_error(f"remove list file not found: {args.remove_list}")
+            c_info("process terminated")
+            return 1
+        remove_list.extend(parse_remove_list(remove_list_file))
+    if not args.remove:
+        args.remove = []
+    args.remove = [*args.remove, *remove_list]
+
+    pre_script_path = args.pre_script or ""
+    if pre_script_path and pre_script_path.strip() == "":
+        c_warning(
+            "pre-overlay script not specified, pre-overlay scripting will be skipped"
+        )
+    args.pre_script = pre_script_path.strip()
+    if args.pre_script:
+        args.pre_script = Path(args.pre_script)
+        if not args.pre_script.is_file():
+            c_error(f"pre-overlay script file not found: {args.pre_script}")
+            c_info("process terminated")
+            return 1
+
+    post_script_path = args.post_script or ""
+    if post_script_path and post_script_path.strip() == "":
+        c_warning(
+            "post-overlay script not specified, post-overlay scripting will be skipped"
+        )
+    args.post_script = post_script_path.strip()
+    if args.post_script:
+        args.post_script = Path(args.post_script)
+        if not args.post_script.is_file():
+            c_error(f"post-overlay script file not found: {args.post_script}")
+            c_info("process terminated")
+            return 1
+
     c_info("validating rootfs image file...")
     if not validate_rootfs_image(args.image):
         c_error(f"{args.image} is not a valid rootfs image file")
@@ -190,17 +241,6 @@ def main():
         c_file_tree(mount_point, depth=depth, title="rootfs/")
 
     try:
-        # 执行remove操作
-        remove_list = []
-        if args.remove_list:
-            remove_list_file = Path(args.remove_list)
-            if not remove_list_file.is_file():
-                c_error(f"remove list file not found: {args.remove_list}")
-                raise FileNotFoundError(f"file not found: {args.remove_list}")
-            remove_list.extend(parse_remove_list(remove_list_file))
-        if not args.remove:
-            args.remove = []
-        args.remove = [*args.remove, *remove_list]
         if args.remove:
             c_info("start remove operations...")
             c_info(f"{len(args.remove)} file(s) about to be removed...")
@@ -213,19 +253,10 @@ def main():
                 c_warning(
                     f"{args.qemu_bin} not detected, maybe qemu-user-static not installed?"
                 )
-
         # 执行pre-overlay脚本
-        pre_script_path = args.pre_script or ""
-        if pre_script_path and pre_script_path.strip() == "":
-            c_warning("pre-overlay script not specified, skip pre-overlay scripting")
-        pre_script_path = pre_script_path.strip()
-        if pre_script_path:
-            pre_script_path = Path(pre_script_path)
-            if not pre_script_path.is_file():
-                c_error(f"pre-overlay script file not found: {args.pre_script}")
-                raise FileNotFoundError(f"file not found: {args.pre_script}")
+        if args.pre_script:
             c_info("start to execute pre-overlay script...")
-            do_pre_overlay_scripting(mount_point, pre_script_path, args.qemu_bin)
+            do_pre_overlay_scripting(mount_point, args.pre_script, args.qemu_bin)
 
         # 执行overlay操作
         overlay_dir = args.overlay or ""
@@ -241,17 +272,9 @@ def main():
             do_overlay(mount_point, overlay_dir)
 
         # 执行post-overlay脚本
-        post_script_path = args.post_script or ""
-        if post_script_path and post_script_path.strip() == "":
-            c_warning("post-overlay script not specified, skip post-overlay scripting")
-        post_script_path = post_script_path.strip()
         if args.post_script:
-            post_script_path = Path(post_script_path)
-            if not post_script_path.is_file():
-                c_error(f"post-overlay script file not found: {args.post_script}")
-                raise FileNotFoundError(f"file not found: {args.post_script}")
             c_info("start to execute post-overlay script...")
-            do_post_overlay_scripting(mount_point, post_script_path, args.qemu_bin)
+            do_post_overlay_scripting(mount_point, args.post_script, args.qemu_bin)
 
         return 0
 
