@@ -55,7 +55,7 @@ def parse_args():
         "--qemu-bin",
         default=None,
         nargs="?",
-        help="chroot environment to use, supports qemu-aarch64-static for arm64, armhf for armhf, "
+        help="chroot environment to use, supports qemu-aarch64-static for arm64, qemu-arm-static for armhf, "
         "when not specified, chroot will not be used when executing pre/post scripts.",
     )
     parser.add_argument(
@@ -131,13 +131,7 @@ def do_pre_overlay_scripting(mount_point, script_path, qemu_bin):
     mount_point = Path(mount_point)
     script_path = Path(script_path)
     qemu_bin = (qemu_bin or "").strip()
-    if not qemu_bin:
-        execute_script(mount_point, script_path, qemu_bin=None)
-        return
-
-    # if not is_qemu_user_static_installed(qemu_bin):
-    #     raise RuntimeError(f"qemu-user-static not installed for {qemu_bin}")
-    # execute_script(mount_point, script_path, qemu_bin=qemu_bin)
+    execute_script(mount_point, script_path, qemu_bin=qemu_bin)
 
 
 def do_post_overlay_scripting(mount_point, script_path, qemu_bin):
@@ -211,6 +205,14 @@ def main():
             c_info("start remove operations...")
             c_info(f"{len(args.remove)} file(s) about to be removed...")
             do_remove(mount_point, args.remove)
+
+        args.qemu_bin = (args.qemu_bin or "").strip()
+        if args.qemu_bin:
+            c_info(f"{args.qemu_bin} will be used for executing pre/post scripts")
+            if not is_qemu_user_static_installed(args.qemu_bin):
+                c_warning(
+                    f"{args.qemu_bin} not detected, maybe qemu-user-static not installed?"
+                )
 
         # 执行pre-overlay脚本
         pre_script_path = args.pre_script or ""

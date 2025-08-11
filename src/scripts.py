@@ -77,7 +77,7 @@ def execute_script(
     if not script_content:
         c_warning(f"script is empty, nothing to execute")
         return None
-
+    # 在主机环境执行脚本
     if not qemu_bin:
         c_info(f"executing script in host environment: {script_path}")
         ret_code, stdout, stderr, exc = bash_exec(
@@ -93,6 +93,7 @@ def execute_script(
         return ret_code, stdout, stderr, exc
 
     try:
+        # 切换到目标环境执行脚本
         c_info(f"preparing chroot environment: {mount_point}")
         chroot_mount(mount_point=mount_point, *args, **kwargs)
         setup_qemu_for_chroot(mount_point=mount_point, qemu_bin=qemu_bin)
