@@ -1,6 +1,5 @@
 import shlex
 import subprocess
-from io import StringIO
 from pathlib import Path
 
 from pretty import (
@@ -135,44 +134,6 @@ def bash_exec(
         )
     except subprocess.TimeoutExpired as e:
         return -1, None, None, e
-
-    # stdout_buffer = StringIO()
-    # stderr_buffer = StringIO()
-    #
-    # try:
-    #     with subprocess.Popen(
-    #         cmd,
-    #         cwd=cwd,
-    #         stdout=subprocess.PIPE,
-    #         stderr=subprocess.PIPE,
-    #         shell=False,
-    #         encoding=encoding,
-    #         errors="replace",
-    #         bufsize=1,
-    #     ) as p:
-    #         for line in p.stdout:
-    #             stdout_buffer.write(line)
-    #         for line in p.stderr:
-    #             stderr_buffer.write(line)
-    #         try:
-    #             p.wait(timeout=timeout)
-    #         except subprocess.TimeoutExpired as e:
-    #             p.kill()
-    #             raise e
-    #         ret_code = p.returncode
-    #         return (
-    #             ret_code,
-    #             stdout_buffer.getvalue().strip(),
-    #             stderr_buffer.getvalue().strip(),
-    #             None,
-    #         )
-    # except BaseException as e:
-    #     return (
-    #         -1,
-    #         stdout_buffer.getvalue().strip(),
-    #         stderr_buffer.getvalue().strip(),
-    #         e,
-    #     )
 
 
 def shlex_join(args):

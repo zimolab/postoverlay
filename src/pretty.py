@@ -152,14 +152,6 @@ def print_warning(msg, icon=""):
 
 def print_error(msg, icon=""):
     """打印错误消息"""
-    # panel = Panel(
-    #     Text(f"{icon} ERROR: {msg}".lstrip(), justify="left"),
-    #     style="error",
-    #     border_style="error",
-    #     box=box.DOUBLE,
-    #     padding=(0, 2),
-    #     width=_common_panel_width,
-    # )
     _console.print(f"{icon} [error]ERROR:[/error] {msg}".lstrip())
 
 

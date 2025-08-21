@@ -177,7 +177,7 @@ def execute_script(
         return ret_code, stdout, stderr, exc
 
     try:
-        c_info(f"preparing chroot environment")
+        c_info(f"setting up chroot environment")
         # os.chmod(mount_point, 0o777)
         setup_qemu_for_chroot(mount_point=mount_point, qemu_bin=qemu_bin)
         chroot_mount(mount_point=mount_point, *args, **kwargs)
