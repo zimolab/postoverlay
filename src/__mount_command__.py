@@ -45,16 +45,17 @@ def mount_main(args):
         raise e
 
     c_info(f"rootfs image mounted")
-    c_info(f"$ROOTFS = {mount_point.as_posix()}")
+    rootfs_dir = mount_point.absolute().as_posix()
+    c_info(f"$ROOTFS = {rootfs_dir}")
 
-    c_info(f"now you can access the mounted rootfs image at `{mount_point.as_posix()}`")
+    c_info(f"now you can access the mounted rootfs image at `{rootfs_dir}`")
     qemu_bin = args.qemu_bin or ""
     c_info(
         "please use the following command to unmount the rootfs image when you don't need it anymore:"
     )
 
     if not qemu_bin:
-        c_shell_command(f"sudo umount -l {mount_point.as_posix()}")
+        c_shell_command(f"sudo umount -l {rootfs_dir}")
         return 0
 
     try:
@@ -62,20 +63,25 @@ def mount_main(args):
         setup_qemu_for_chroot(mount_point=mount_point, qemu_bin=qemu_bin)
         chroot_mount(mount_point=mount_point)
         c_info(f"chroot environment prepared")
-        c_info(f"you can now run chroot commands in `{mount_point.as_posix()}`")
-        c_info(f"for example: `chroot {mount_point.as_posix()} /bin/bash`")
+        c_info(f"you can now run chroot commands in `{rootfs_dir}`")
+        c_info(f"for example: `chroot {rootfs_dir} /bin/bash`")
         c_info(
             "please use the following command to unmount the rootfs image when you don't need it anymore:"
         )
-        rootfs = mount_point.as_posix()
+        chroot_umount_cmd = (
+            f"sudo umount -l {rootfs_dir}/proc\n"
+            f"sudo umount -l {rootfs_dir}/sys\n"
+            f"sudo umount -l {rootfs_dir}/dev/pts\n"
+            f"sudo umount -l {rootfs_dir}/dev\n"
+            f"sudo umount -l {rootfs_dir}/run"
+        )
         c_shell_command(
-            f"sudo rm -f {rootfs}/user/bin/{qemu_bin}\n"
-            f"mount -t proc /proc {rootfs}/proc\n"
-            f"mount -t sysfs /sys {rootfs}/sys\n"
-            f"mount -o bind /run {rootfs}/run\n"
-            f"mount -o bind /dev {rootfs}/dev\n"
-            f"mount -o bind /dev/pts {rootfs}/dev/pts\n"
-            f"sudo umount -l {mount_point.as_posix()}\n"
+            "# remove qemu binary from $ROOTFS/usr/bin/\n"
+            f"sudo rm -f {rootfs_dir}/user/bin/{qemu_bin}\n"
+            f"# umount chroot environment \n"
+            f"{chroot_umount_cmd}\n"
+            f"# unmount rootfs image \n"
+            f"sudo umount -l {rootfs_dir}\n"
         )
     except BaseException as e:
         c_error(f"failed to set up chroot environment: {e}")
